@@ -1,32 +1,53 @@
-{% set name = "skopeo" %}
-{% set version = "0.1.35" %}
+{% set version = "1.2.0" %}
 
 package:
-  name: {{ name|lower }}
+  name: skopeo
   version: {{ version }}
 
 source:
-  url: https://github.com/containers/skopeo/archive/v{{version}}.tar.gz
-  sha256: 0d7024c09d7b1822acb174912f5b06950a023ef5d05d6b8b442e563c512b4c4a
+  url: https://github.com/containers/skopeo/archive/v{{ version }}.tar.gz
+  sha256: 113290f6747b7a9946ddf50ad1a7d924d3e507fe923b2e0460df1e6823de0ffb
+  folder: src
+  patches:
+    # NOTE: This adds the memfd_create syscall which is not available on CentOS 6's kernels.
+    - 0001-Add-missing-defines-for-CentOS-6.patch
+    - 0002-Avoid-LDFLAGS-override.patch
+    - 0003-Allow-relative-paths-for-system-config-files.patch
 
 build:
-  number: 1
+  number: 0
   skip: True  # [win]
 
 requirements:
   build:
     - {{ compiler('cgo') }}
     - {{ compiler('c') }}
+    - go-licenses
+    - go-md2man
+    - make
+  host:
+    - btrfs-progs  # [linux]
+    - containers-common
+    - gpgme  # [linux]
+    - libassuan  # [linux]
+    - libdevmapper  # [linux]
+  run:
+    - containers-common
 
 test:
   commands:
     - skopeo --help
+    - skopeo --version
 
 about:
   home: https://github.com/containers/skopeo
+  dev_url: https://github.com/containers/skopeo
+  doc_url: https://github.com/containers/skopeo
   license: Apache-2.0
   license_family: Apache
-  license_file: LICENSE
+  license_file:
+    - LICENSE
+    - thirdparty-licenses.txt
   summary: Perform operations on container images without docker daemon.
   description: |
     Skopeo can copy, inspect delete, sign and verify container images
@@ -38,3 +59,4 @@ extra:
   recipe-maintainers:
     - epruesse
     - bgruening
+    - mbargull
