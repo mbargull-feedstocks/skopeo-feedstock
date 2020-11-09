@@ -1,0 +1,120 @@
+diff --git a/vendor/github.com/containers/common/pkg/config/config.go b/vendor/github.com/containers/common/pkg/config/config.go
+new file mode 100644
+index 00000000..19990200
+--- /dev/null
++++ b/vendor/github.com/containers/common/pkg/config/config.go
+@@ -0,0 +1,42 @@
++package config
++
++import (
++	"os"
++	"path/filepath"
++	"strings"
++)
++
++// Get path to the running executable.
++func GetExePath() string {
++	exePath, err := os.Executable()
++	if err == nil {
++		return exePath
++	}
++	exeRealPath, err := filepath.EvalSymlinks(exePath)
++	if err == nil {
++		return exeRealPath
++	}
++	panic(err)
++}
++
++const conda = true;
++// For Conda environments we transform default configuration paths like so:
++// (This assumes the executable always resides at PREFIX/bin/executable!)
++//   /etc/path -> PREFIX/bin/../etc/path -> PREFIX/etc/path
++//   /usr/share/path -> PREFIX/bin/../share/path -> PREFIX/share/path
++func ExeRelPath(path string) string {
++	if !conda {
++		return path
++	}
++	relativePath := strings.TrimPrefix(path, "/usr")
++	return filepath.Join(filepath.Dir(filepath.Dir(GetExePath())), relativePath)
++}
++func FallbackToExeRelPath(path string) string {
++	if !conda {
++		return path
++	}
++	if _, err := os.Stat(path); err == nil {
++		return path
++	}
++	return ExeRelPath(path)
++}
+diff --git a/vendor/github.com/containers/image/v5/docker/lookaside.go b/vendor/github.com/containers/image/v5/docker/lookaside.go
+index 6931fd07..27a1f6fc 100644
+--- a/vendor/github.com/containers/image/v5/docker/lookaside.go
++++ b/vendor/github.com/containers/image/v5/docker/lookaside.go
+@@ -9,6 +9,7 @@ import (
+ 	"path/filepath"
+ 	"strings"
+ 
++	"github.com/containers/common/pkg/config"
+ 	"github.com/containers/image/v5/docker/reference"
+ 	"github.com/containers/image/v5/types"
+ 	"github.com/containers/storage/pkg/homedir"
+@@ -90,7 +91,7 @@ func registriesDirPath(sys *types.SystemContext) string {
+ 		return filepath.Join(sys.RootForImplicitAbsolutePaths, systemRegistriesDirPath)
+ 	}
+ 
+-	return systemRegistriesDirPath
++	return config.FallbackToExeRelPath(systemRegistriesDirPath)
+ }
+ 
+ // loadAndMergeConfig loads configuration files in dirPath
+diff --git a/vendor/github.com/containers/image/v5/pkg/sysregistriesv2/system_registries_v2.go b/vendor/github.com/containers/image/v5/pkg/sysregistriesv2/system_registries_v2.go
+index 9a571265..978fe251 100644
+--- a/vendor/github.com/containers/image/v5/pkg/sysregistriesv2/system_registries_v2.go
++++ b/vendor/github.com/containers/image/v5/pkg/sysregistriesv2/system_registries_v2.go
+@@ -10,6 +10,7 @@ import (
+ 	"sync"
+ 
+ 	"github.com/BurntSushi/toml"
++	"github.com/containers/common/pkg/config"
+ 	"github.com/containers/image/v5/docker/reference"
+ 	"github.com/containers/image/v5/types"
+ 	"github.com/containers/storage/pkg/homedir"
+@@ -389,7 +390,7 @@ func newConfigWrapper(ctx *types.SystemContext) configWrapper {
+ 	} else if ctx != nil && ctx.RootForImplicitAbsolutePaths != "" {
+ 		wrapper.configPath = filepath.Join(ctx.RootForImplicitAbsolutePaths, systemRegistriesConfPath)
+ 	} else {
+-		wrapper.configPath = systemRegistriesConfPath
++		wrapper.configPath = config.FallbackToExeRelPath(systemRegistriesConfPath)
+ 	}
+ 
+ 	// potentially use both system and per-user dirs if not using per-user config file
+@@ -400,7 +401,7 @@ func newConfigWrapper(ctx *types.SystemContext) configWrapper {
+ 		wrapper.configDirPath = filepath.Join(ctx.RootForImplicitAbsolutePaths, systemRegistriesConfDirPath)
+ 		wrapper.userConfigDirPath = userRegistriesDirPath
+ 	} else {
+-		wrapper.configDirPath = systemRegistriesConfDirPath
++		wrapper.configDirPath = config.FallbackToExeRelPath(systemRegistriesConfDirPath)
+ 		wrapper.userConfigDirPath = userRegistriesDirPath
+ 	}
+ 
+diff --git a/vendor/github.com/containers/image/v5/signature/policy_config.go b/vendor/github.com/containers/image/v5/signature/policy_config.go
+index 72fcf618..f2dae990 100644
+--- a/vendor/github.com/containers/image/v5/signature/policy_config.go
++++ b/vendor/github.com/containers/image/v5/signature/policy_config.go
+@@ -20,6 +20,7 @@ import (
+ 	"os"
+ 	"path/filepath"
+ 
++	"github.com/containers/common/pkg/config"
+ 	"github.com/containers/image/v5/docker/reference"
+ 	"github.com/containers/image/v5/transports"
+ 	"github.com/containers/image/v5/types"
+@@ -68,7 +69,7 @@ func defaultPolicyPath(sys *types.SystemContext) string {
+ 	if sys != nil && sys.RootForImplicitAbsolutePaths != "" {
+ 		return filepath.Join(sys.RootForImplicitAbsolutePaths, systemDefaultPolicyPath)
+ 	}
+-	return systemDefaultPolicyPath
++	return config.FallbackToExeRelPath(systemDefaultPolicyPath)
+ }
+ 
+ // NewPolicyFromFile returns a policy configured in the specified file.
