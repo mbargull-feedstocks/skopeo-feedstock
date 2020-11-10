@@ -5,10 +5,12 @@ module_path="${GOPATH:-"$( go env GOPATH )"}"/src/github.com/containers/skopeo
 mkdir -p "$( dirname "${module_path}" )"
 mv ./src "${module_path}"
 
-disable_cgo=0
-if ! [[ ${target_platform} =~ linux.* ]] ; then
-    disable_cgo=1
-fi
+disable_cgo=1
+case "${target_platform}" in
+  linux-*)
+    disable_cgo=0
+esac
+
 make -C "${module_path}" install \
   DISABLE_CGO="${disable_cgo}" \
   DESTDIR="${PREFIX}" \

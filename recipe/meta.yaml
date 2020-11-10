@@ -15,13 +15,14 @@ source:
     - 0003-Allow-relative-paths-for-system-config-files.patch
 
 build:
-  number: 0
+  number: 1
   skip: True  # [win]
 
 requirements:
   build:
-    - {{ compiler('cgo') }}
-    - {{ compiler('c') }}
+    - {{ compiler('cgo') }}  # [linux]
+    - {{ compiler('c') }}  # [linux]
+    - {{ compiler('go') }}  # [not linux]
     - go-licenses
     - go-md2man
     - make
