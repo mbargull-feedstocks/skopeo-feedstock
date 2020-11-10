@@ -7,7 +7,7 @@ package:
 source:
   url: https://github.com/containers/skopeo/archive/v{{ version }}.tar.gz
   sha256: 113290f6747b7a9946ddf50ad1a7d924d3e507fe923b2e0460df1e6823de0ffb
-  folder: src
+  folder: skopeo
   patches:
     # NOTE: This adds the memfd_create syscall which is not available on CentOS 6's kernels.
     - 0001-Add-missing-defines-for-CentOS-6.patch
@@ -16,7 +16,6 @@ source:
 
 build:
   number: 1
-  skip: True  # [win]
 
 requirements:
   build:

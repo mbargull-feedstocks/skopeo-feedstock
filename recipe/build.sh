@@ -1,14 +1,21 @@
 #! /usr/bin/env bash
 
-cp ./src/LICENSE ./
-module_path="${GOPATH:-"$( go env GOPATH )"}"/src/github.com/containers/skopeo
+cp ./skopeo/LICENSE ./
+module_path="${GOPATH:-"$( go env GOPATH )"}"/skopeo/github.com/containers/skopeo
 mkdir -p "$( dirname "${module_path}" )"
-mv ./src "${module_path}"
+mv ./skopeo "${module_path}"
 
 disable_cgo=1
 case "${target_platform}" in
   linux-*)
     disable_cgo=0
+  ;;
+  win-*)
+    export GOOS=windows
+    export GOARCH=amd64
+    # NOTE: If you want to use INSTALLDIR="${PREFIX}/Library/bin" make sure to
+    #       add a subsequent patch (to consider the increased directory depth)
+    #       after 0003-Allow-relative-paths-for-system-config-files.patch.
 esac
 
 make -C "${module_path}" install \
